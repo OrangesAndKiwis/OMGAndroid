@@ -32,6 +32,8 @@ from collections import defaultdict
 API = "https://api.open.fec.gov/v1"
 PER_PAGE = 100
 EMPTY = {"results": [], "pagination": {"pages": 0}}
+THROTTLE = 1.05  # seconds between calls; FEC allows ~60/min
+_last_call = [0.0]
 
 # disbursement_description keyword -> purpose bucket
 PURPOSE_RULES = [
@@ -48,6 +50,10 @@ PURPOSE_RULES = [
 
 
 def fec_get(path, api_key, retries=4, **params):
+    gap = THROTTLE - (time.time() - _last_call[0])
+    if gap > 0:
+        time.sleep(gap)
+    _last_call[0] = time.time()
     params["api_key"] = api_key
     url = f"{API}/{path}?{urllib.parse.urlencode(params)}"
     for attempt in range(retries):
@@ -141,12 +147,20 @@ def related_party(payee, city, zipc, meta):
 
 
 def load_committee_ids(args):
+    """Committee ids to analyze. From --committees, or the top suspects in the
+    flagged file ranked by 2024 receipts (most money at risk first)."""
     if args.committees:
         return args.committees.split(",")
-    ids = []
-    with open(args.flagged) as f:
-        for row in csv.DictReader(f):
-            ids.append(row["committee_id"])
+    rows = list(csv.DictReader(open(args.flagged)))
+
+    def receipts(r):
+        try:
+            return float(r.get("receipts_2024") or 0)
+        except ValueError:
+            return 0.0
+
+    rows.sort(key=receipts, reverse=True)
+    ids = [r["committee_id"] for r in rows]
     return ids[: args.limit] if args.limit else ids
 
 

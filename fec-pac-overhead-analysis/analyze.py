@@ -35,10 +35,16 @@ PER_PAGE = 100
 
 
 EMPTY = {"results": [], "pagination": {"pages": 0}}
+THROTTLE = 1.05  # seconds between calls; FEC allows ~60/min
+_last_call = [0.0]
 
 
 def fec_get(path, api_key, retries=4, **params):
-    """GET with retry/backoff. 404 -> empty; rate-limit/transient -> retry."""
+    """GET with pacing + retry/backoff. 404 -> empty; rate-limit/transient -> retry."""
+    gap = THROTTLE - (time.time() - _last_call[0])
+    if gap > 0:
+        time.sleep(gap)
+    _last_call[0] = time.time()
     params["api_key"] = api_key
     url = f"{API}/{path}?{urllib.parse.urlencode(params)}"
     for attempt in range(retries):
@@ -78,22 +84,13 @@ def sweep_totals(cycle, api_key, limit=None):
     return rows
 
 
-def receipts_2026(committee_id, api_key):
-    """2026 raised-to-date for one committee (exposure column).
-
-    Fail-soft: returns None if the lookup can't complete (e.g. DEMO_KEY rate
-    limit) so the flag output is never lost to a missing exposure value.
-    """
-    try:
-        d = fec_get(f"committee/{committee_id}/totals/", api_key,
-                    cycle=EXPOSURE_CYCLE)
-    except Exception:
-        return None
-    res = d.get("results", [])
-    return (res[0].get("receipts") or 0) if res else 0
+def receipts_map(cycle, api_key, limit=None):
+    """Bulk {committee_id: receipts} for a cycle (single sweep, not per-PAC)."""
+    return {r.get("committee_id"): (r.get("receipts") or 0)
+            for r in sweep_totals(cycle, api_key, limit=limit)}
 
 
-def analyze(rows, api_key):
+def analyze(rows, exposure):
     flagged = []
     skipped_party = skipped_small = 0
     for r in rows:
@@ -112,7 +109,7 @@ def analyze(rows, api_key):
         mission = (contrib + ie) / disb
         if mission >= MISSION_THRESHOLD:
             continue
-        exposure = receipts_2026(r.get("committee_id"), api_key)
+        raised_2026 = exposure.get(r.get("committee_id"))
         flagged.append({
             "committee_id": r.get("committee_id"),
             "name": r.get("committee_name"),
@@ -123,7 +120,7 @@ def analyze(rows, api_key):
             "mission_pct": round(mission * 100, 1),
             "candidate_pct": round(contrib / disb * 100, 1),
             "indep_exp_2024": round(ie, 2),
-            "raised_2026_to_date": "" if exposure is None else round(exposure, 2),
+            "raised_2026_to_date": "" if raised_2026 is None else round(raised_2026, 2),
             "flag_reason": f"mission {mission:.1%} < {MISSION_THRESHOLD:.0%}",
         })
     flagged.sort(key=lambda x: x["mission_pct"])  # worst first
@@ -144,7 +141,9 @@ def main():
 
     rows = sweep_totals(FLAG_CYCLE, api_key, limit=args.limit)
     print(f"  scanned {len(rows)} committees")
-    flagged, sp, ss = analyze(rows, api_key)
+    print(f"Fetching {EXPOSURE_CYCLE} raised-to-date (bulk) ...")
+    exposure = receipts_map(EXPOSURE_CYCLE, api_key, limit=args.limit)
+    flagged, sp, ss = analyze(rows, exposure)
     print(f"  excluded: {sp} party, {ss} below ${MIN_TOTAL_SPEND:,} spend")
     print(f"  FLAGGED: {len(flagged)}")
 
