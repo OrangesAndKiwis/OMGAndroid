@@ -157,13 +157,17 @@ def load_committee_ids(args):
         return args.committees.split(",")
     rows = list(csv.DictReader(open(args.flagged)))
 
-    def receipts(r):
+    def overhead_dollars(r):
+        """Rank by overhead spend magnitude (overhead% x disbursements) — money
+        actually consumed running the PAC, the best pre-Schedule-B scam proxy.
+        Beats receipts-ranking, which surfaces big legitimate PACs."""
         try:
-            return float(r.get("receipts_2024") or 0)
+            return (float(r.get("overhead_pct") or 0) / 100.0
+                    * float(r.get("disbursements_2024") or 0))
         except ValueError:
             return 0.0
 
-    rows.sort(key=receipts, reverse=True)
+    rows.sort(key=overhead_dollars, reverse=True)
     ids = [r["committee_id"] for r in rows]
     return ids[: args.limit] if args.limit else ids
 
