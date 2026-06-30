@@ -1,0 +1,15 @@
+# Secrets
+.env
+
+# Generated outputs
+flagged_pacs.csv
+vendor_clusters.csv
+top_vendors.csv
+*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.cache/
