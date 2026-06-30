@@ -32,6 +32,9 @@ MIN_TOTAL_SPEND = 10_000
 FLAG_CYCLE = 2024
 EXPOSURE_CYCLE = 2026
 PARTY_TYPES = {"X", "Y", "Z"}  # party committees — excluded
+EXCLUDE_DESIGNATIONS = {"J"}   # Joint Fundraising Committees: high cost-to-raise
+                               # is inherent (raise jointly, transfer out) — a
+                               # false-positive class, not deceptive fundraising
 PER_PAGE = 100
 
 
@@ -109,11 +112,14 @@ def sweep_totals(cycle, api_key, limit=None, workers=6, **filters):
 
 def analyze(rows, exposure):
     flagged = []
-    skipped_party = skipped_small = 0
+    skipped_party = skipped_small = skipped_jfc = 0
     for r in rows:
         ctype = r.get("committee_type")
         if ctype in PARTY_TYPES:
             skipped_party += 1
+            continue
+        if r.get("committee_designation") in EXCLUDE_DESIGNATIONS:
+            skipped_jfc += 1
             continue
         disb = r.get("disbursements") or 0
         if disb < MIN_TOTAL_SPEND:
@@ -131,6 +137,7 @@ def analyze(rows, exposure):
             "committee_id": r.get("committee_id"),
             "name": r.get("committee_name"),
             "committee_type": r.get("committee_type_full") or ctype,
+            "designation": r.get("committee_designation"),
             "receipts_2024": round(receipts, 2),
             "disbursements_2024": round(disb, 2),
             "overhead_pct": round(oper / disb * 100, 1),
@@ -141,7 +148,7 @@ def analyze(rows, exposure):
             "flag_reason": f"mission {mission:.1%} < {MISSION_THRESHOLD:.0%}",
         })
     flagged.sort(key=lambda x: x["mission_pct"])  # worst first
-    return flagged, skipped_party, skipped_small
+    return flagged, skipped_party, skipped_small, skipped_jfc
 
 
 def main():
@@ -164,8 +171,9 @@ def main():
     # 2026 raised-to-date is enriched per-suspect in step 2 (vendors.py) rather
     # than via a full second bulk sweep: the totals endpoint offset-pages slowly
     # and 2026 only matters for the suspects we actually deep-dive.
-    flagged, sp, ss = analyze(rows, {})
-    print(f"  excluded: {sp} party, {ss} below ${MIN_TOTAL_SPEND:,} spend")
+    flagged, sp, ss, sj = analyze(rows, {})
+    print(f"  excluded: {sp} party, {sj} joint-fundraising, "
+          f"{ss} below ${MIN_TOTAL_SPEND:,} spend")
     print(f"  FLAGGED: {len(flagged)}")
 
     if not flagged:

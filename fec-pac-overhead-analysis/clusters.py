@@ -21,7 +21,9 @@ import csv
 from collections import defaultdict
 
 OVERHEAD_PURPOSES = {"fundraising", "consulting", "admin"}
-MIN_SHARED_PACS = 2  # a vendor must touch >=2 PACs to be a linking edge
+MIN_SHARED_PACS = 2     # a vendor must touch >=2 PACs to be a linking edge
+MAX_SHARED_FRAC = 0.30  # ...but not >30% of PACs (Google/ActBlue-type vendors
+                        # are ubiquitous and link everyone -> not distinctive)
 
 
 class UnionFind:
@@ -66,10 +68,13 @@ def main():
         vendor_pacs[vendor].add(cid)
         vendor_amt[vendor] += amt
 
-    # link PACs that share a vendor used by >= MIN_SHARED_PACS committees
+    # distinctive shared vendors: used by >= MIN_SHARED_PACS but not by more than
+    # MAX_SHARED_FRAC of all PACs (ubiquitous vendors link everyone -> noise).
+    all_pacs = {p for pacs in vendor_pacs.values() for p in pacs}
+    ceiling = max(MIN_SHARED_PACS, int(MAX_SHARED_FRAC * len(all_pacs)))
     uf = UnionFind()
     shared_vendors = {v: pacs for v, pacs in vendor_pacs.items()
-                      if len(pacs) >= MIN_SHARED_PACS}
+                      if MIN_SHARED_PACS <= len(pacs) <= ceiling}
     for pacs in shared_vendors.values():
         pacs = sorted(pacs)
         for other in pacs[1:]:

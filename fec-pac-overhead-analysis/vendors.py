@@ -34,6 +34,8 @@ PER_PAGE = 100
 EMPTY = {"results": [], "pagination": {"pages": 0}}
 THROTTLE = 1.05  # seconds between calls; FEC allows ~60/min
 _last_call = [0.0]
+RECEIPTS_FLOOR = 100_000      # scam sweet-spot band (raises real money...
+RECEIPTS_CEIL = 50_000_000   # ...but not a mega-operation)
 
 # disbursement_description keyword -> purpose bucket
 PURPOSE_RULES = [
@@ -157,18 +159,20 @@ def load_committee_ids(args):
         return args.committees.split(",")
     rows = list(csv.DictReader(open(args.flagged)))
 
-    def overhead_dollars(r):
-        """Rank by overhead spend magnitude (overhead% x disbursements) — money
-        actually consumed running the PAC, the best pre-Schedule-B scam proxy.
-        Beats receipts-ranking, which surfaces big legitimate PACs."""
+    def num(r, k):
         try:
-            return (float(r.get("overhead_pct") or 0) / 100.0
-                    * float(r.get("disbursements_2024") or 0))
+            return float(r.get(k) or 0)
         except ValueError:
             return 0.0
 
-    rows.sort(key=overhead_dollars, reverse=True)
-    ids = [r["committee_id"] for r in rows]
+    # Scam sweet spot: raises real money but isn't a mega-operation. Rank by
+    # overhead PERCENTAGE (the scam signature) within a receipts band — excludes
+    # tiny union locals (noise) and billion-dollar giants (legit scale that buries
+    # the percentage signal and over-clusters on ubiquitous vendors).
+    band = [r for r in rows
+            if RECEIPTS_FLOOR <= num(r, "receipts_2024") <= RECEIPTS_CEIL]
+    band.sort(key=lambda r: num(r, "overhead_pct"), reverse=True)
+    ids = [r["committee_id"] for r in band]
     return ids[: args.limit] if args.limit else ids
 
 

@@ -17,9 +17,20 @@ API key: stored in .env as FEC_API_KEY
   Counting IEs is required so legitimate independent-expenditure Super PACs are
   not all false-flagged (validated: Senate Leadership Fund clears at ~94%
   mission; status-quo contributions-only wrongly put it at 23%).
-- **Exclude party committees** (types X/Y/Z). They spend via coordinated
-  expenditures and transfers, registering as neither contributions nor IEs —
-  a false-positive class (e.g. DCCC looks scammy on raw ratios but is legit).
+- **Exclude false-positive classes** that have high cost-to-raise / low mission
+  ratio for legitimate structural reasons (found during the full run):
+  - **Party committees** (types X/Y/Z) — spend via coordinated expenditures/transfers.
+  - **Joint Fundraising Committees** (designation `J`) — raise jointly then transfer
+    out (e.g. RUBIO VICTORY COMMITTEE, TEAM SCALISE). Excluded in analyze.py.
+  - **Union/trade transfer PACs** — money leaves as transfers to affiliated PACs.
+  Real scams are typically designation `U` (non-connected), e.g. LAW ENFORCEMENT
+  FOR A SAFER AMERICA, SEAL PAC.
+- **Target the scam sweet spot for deep analysis**: rank by overhead PERCENTAGE
+  within a receipts band ($100k–$50M). Billion-dollar committees have low
+  overhead % (legit scale) and over-cluster on ubiquitous vendors (Google,
+  ActBlue); tiny union locals are noise.
+- **Cluster on distinctive vendors only**: drop vendors used by >30% of the
+  analyzed PACs — ubiquitous vendors link everyone into one meaningless blob.
 - **Overhead ratio** (`operating_expenditures / disbursements`) is a secondary
   corroborating signal, not the primary gate (it can't separate the validation
   case at 70% from legit DCCC at 58%).
