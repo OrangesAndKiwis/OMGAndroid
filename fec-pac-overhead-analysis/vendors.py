@@ -129,6 +129,10 @@ def committee_meta(committee_id, api_key):
                   cycle=2024).get("results", [])
     if tot:
         meta["receipts"] = tot[0].get("receipts") or 0
+    # 2026 raised-to-date exposure (per-suspect, not a full bulk sweep)
+    tot26 = fec_get(f"committee/{committee_id}/totals/", api_key,
+                    cycle=2026).get("results", [])
+    meta["raised_2026"] = (tot26[0].get("receipts") or 0) if tot26 else 0
     return meta
 
 
@@ -185,6 +189,7 @@ def main():
                                    "pacs": set(), "purposes": defaultdict(float),
                                    "raw": set(), "places": set()})
     edges = defaultdict(lambda: {"amount": 0.0, "purpose": ""})  # (pac,vendor)
+    summaries = []
     for cid in ids:
         meta = committee_meta(cid, api_key)
         rows = schedule_b(cid, api_key, args.max_pages)
@@ -219,9 +224,20 @@ def main():
         fundraising = buckets.get("fundraising", 0)
         receipts = meta.get("receipts") or 0
         ctr = fundraising / receipts if receipts else 0
+        summaries.append({
+            "committee_id": cid,
+            "treasurer": meta.get("treasurer"),
+            "receipts_2024": round(receipts, 2),
+            "itemized_net_2024": round(total, 2),
+            "fundraising_spend": round(fundraising, 2),
+            "cost_to_raise_pct": round(ctr * 100, 1),
+            "related_party_spend": round(rel_party_amt, 2),
+            "raised_2026_to_date": round(meta.get("raised_2026") or 0, 2),
+        })
         print(f"{cid}  itemized=${total:,.0f} (net)  receipts=${receipts:,.0f}  "
               f"cost_to_raise=${fundraising:,.0f}/{ctr:.0%}  "
               f"related_party=${rel_party_amt:,.0f}  "
+              f"2026=${meta.get('raised_2026') or 0:,.0f}  "
               f"treasurer={meta.get('treasurer')}")
 
     # rank vendors by total overhead dollars across PACs
@@ -244,8 +260,16 @@ def main():
             if norm:
                 w.writerow([cid, norm, round(e["amount"], 2), e["purpose"]])
 
+    if summaries:
+        summaries.sort(key=lambda s: s["cost_to_raise_pct"], reverse=True)
+        with open("suspects_summary.csv", "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(summaries[0].keys()))
+            w.writeheader()
+            w.writerows(summaries)
+
     print(f"\nWrote {args.out}  ({sum(1 for n in vendors if n)} vendors)")
-    print(f"Wrote {args.edges}  ({sum(1 for (_, n) in edges if n)} edges)\n")
+    print(f"Wrote {args.edges}  ({sum(1 for (_, n) in edges if n)} edges)")
+    print(f"Wrote suspects_summary.csv  ({len(summaries)} suspects)\n")
     print(f"{'vendor':32} {'total':>12} {'pacs':>5} {'purpose':>12}")
     for norm, v in ranked[:12]:
         if not norm:

@@ -87,12 +87,6 @@ def sweep_totals(cycle, api_key, limit=None, **filters):
     return rows
 
 
-def receipts_map(cycle, api_key, limit=None):
-    """Bulk {committee_id: receipts} for a cycle (single sweep, not per-PAC)."""
-    return {r.get("committee_id"): (r.get("receipts") or 0)
-            for r in sweep_totals(cycle, api_key, limit=limit)}
-
-
 def analyze(rows, exposure):
     flagged = []
     skipped_party = skipped_small = 0
@@ -147,9 +141,10 @@ def main():
     rows = sweep_totals(FLAG_CYCLE, api_key, limit=args.limit,
                         min_disbursements=MIN_TOTAL_SPEND)
     print(f"  scanned {len(rows)} committees")
-    print(f"Fetching {EXPOSURE_CYCLE} raised-to-date (bulk) ...")
-    exposure = receipts_map(EXPOSURE_CYCLE, api_key, limit=args.limit)
-    flagged, sp, ss = analyze(rows, exposure)
+    # 2026 raised-to-date is enriched per-suspect in step 2 (vendors.py) rather
+    # than via a full second bulk sweep: the totals endpoint offset-pages slowly
+    # and 2026 only matters for the suspects we actually deep-dive.
+    flagged, sp, ss = analyze(rows, {})
     print(f"  excluded: {sp} party, {ss} below ${MIN_TOTAL_SPEND:,} spend")
     print(f"  FLAGGED: {len(flagged)}")
 
