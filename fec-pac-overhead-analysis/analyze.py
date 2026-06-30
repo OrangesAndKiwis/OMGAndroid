@@ -66,12 +66,15 @@ def fec_get(path, api_key, retries=4, **params):
     return EMPTY
 
 
-def sweep_totals(cycle, api_key, limit=None):
-    """Page through bulk /totals/pac/ for a cycle, up to `limit` records."""
+def sweep_totals(cycle, api_key, limit=None, **filters):
+    """Page through bulk /totals/pac/ for a cycle, up to `limit` records.
+
+    Extra `filters` (e.g. min_disbursements) are applied server-side to shrink
+    the sweep before paging."""
     rows, page = [], 1
     while True:
         d = fec_get("totals/pac/", api_key, cycle=cycle, per_page=PER_PAGE,
-                    page=page, sort="committee_id")
+                    page=page, sort="committee_id", **filters)
         results = d.get("results", [])
         if not results:
             break
@@ -139,7 +142,10 @@ def main():
     print(f"Sweeping {FLAG_CYCLE} PAC totals (key: {key_label}, "
           f"limit: {args.limit or 'none'}) ...")
 
-    rows = sweep_totals(FLAG_CYCLE, api_key, limit=args.limit)
+    # min_disbursements applies the MIN_TOTAL_SPEND noise floor server-side,
+    # shrinking the sweep (~9200 -> ~6000 committees).
+    rows = sweep_totals(FLAG_CYCLE, api_key, limit=args.limit,
+                        min_disbursements=MIN_TOTAL_SPEND)
     print(f"  scanned {len(rows)} committees")
     print(f"Fetching {EXPOSURE_CYCLE} raised-to-date (bulk) ...")
     exposure = receipts_map(EXPOSURE_CYCLE, api_key, limit=args.limit)
