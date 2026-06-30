@@ -17,6 +17,7 @@ Usage:
 Writes flagged_pacs.csv.  See CLAUDE.md for the methodology rationale.
 """
 import argparse
+import concurrent.futures
 import csv
 import json
 import os
@@ -39,12 +40,17 @@ THROTTLE = 1.05  # seconds between calls; FEC allows ~60/min
 _last_call = [0.0]
 
 
-def fec_get(path, api_key, retries=4, **params):
-    """GET with pacing + retry/backoff. 404 -> empty; rate-limit/transient -> retry."""
-    gap = THROTTLE - (time.time() - _last_call[0])
-    if gap > 0:
-        time.sleep(gap)
-    _last_call[0] = time.time()
+def fec_get(path, api_key, retries=4, paced=True, **params):
+    """GET with optional pacing + retry/backoff. 404 -> empty; transient -> retry.
+
+    paced=False for concurrent callers, where bounded worker count (not a global
+    sleep) keeps us under the rate limit.
+    """
+    if paced:
+        gap = THROTTLE - (time.time() - _last_call[0])
+        if gap > 0:
+            time.sleep(gap)
+        _last_call[0] = time.time()
     params["api_key"] = api_key
     url = f"{API}/{path}?{urllib.parse.urlencode(params)}"
     for attempt in range(retries):
@@ -66,24 +72,38 @@ def fec_get(path, api_key, retries=4, **params):
     return EMPTY
 
 
-def sweep_totals(cycle, api_key, limit=None, **filters):
-    """Page through bulk /totals/pac/ for a cycle, up to `limit` records.
+def sweep_totals(cycle, api_key, limit=None, workers=6, **filters):
+    """Bulk /totals/pac/ for a cycle. Extra `filters` (e.g. min_disbursements)
+    shrink the sweep server-side.
 
-    Extra `filters` (e.g. min_disbursements) are applied server-side to shrink
-    the sweep before paging."""
-    rows, page = [], 1
-    while True:
-        d = fec_get("totals/pac/", api_key, cycle=cycle, per_page=PER_PAGE,
-                    page=page, sort="committee_id", **filters)
-        results = d.get("results", [])
-        if not results:
-            break
-        rows.extend(results)
-        if limit and len(rows) >= limit:
-            return rows[:limit]
-        if page >= d.get("pagination", {}).get("pages", 0):
-            break
-        page += 1
+    FEC offset pagination is O(pages^2) sequentially (deep pages re-scan the
+    whole offset, ~10s each). Pages are independent, so the full run fetches
+    them concurrently with a bounded pool; small --limit runs stay sequential.
+    """
+    first = fec_get("totals/pac/", api_key, cycle=cycle, per_page=PER_PAGE,
+                    page=1, sort="committee_id", **filters)
+    rows = list(first.get("results", []))
+    pages = first.get("pagination", {}).get("pages", 1)
+
+    if limit:  # sequential is fine for small test slices
+        page = 2
+        while len(rows) < limit and page <= pages:
+            r = fec_get("totals/pac/", api_key, cycle=cycle, per_page=PER_PAGE,
+                        page=page, sort="committee_id", **filters).get("results", [])
+            if not r:
+                break
+            rows.extend(r)
+            page += 1
+        return rows[:limit]
+
+    def fetch(page):
+        return fec_get("totals/pac/", api_key, paced=False, cycle=cycle,
+                       per_page=PER_PAGE, page=page, sort="committee_id",
+                       **filters).get("results", [])
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+        for res in ex.map(fetch, range(2, pages + 1)):
+            rows.extend(res)
     return rows
 
 
