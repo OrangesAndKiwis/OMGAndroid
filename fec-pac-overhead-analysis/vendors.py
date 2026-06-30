@@ -113,11 +113,17 @@ def schedule_b(committee_id, api_key, max_pages):
 
 def committee_meta(committee_id, api_key):
     res = fec_get(f"committee/{committee_id}/", api_key).get("results", [])
-    if not res:
-        return {}
-    c = res[0]
-    return {"treasurer": c.get("treasurer_name"), "street": c.get("street_1"),
-            "zip": c.get("zip"), "receipts": None}
+    meta = {"treasurer": None, "street": None, "zip": None, "receipts": 0}
+    if res:
+        c = res[0]
+        meta.update(treasurer=c.get("treasurer_name"), street=c.get("street_1"),
+                    zip=c.get("zip"))
+    # authoritative 2024 receipts (totals endpoint), used as cost-to-raise denom
+    tot = fec_get(f"committee/{committee_id}/totals/", api_key,
+                  cycle=2024).get("results", [])
+    if tot:
+        meta["receipts"] = tot[0].get("receipts") or 0
+    return meta
 
 
 def related_party(payee, city, zipc, meta):
@@ -152,6 +158,8 @@ def main():
     ap.add_argument("--max-pages", type=int, default=5,
                     help="Schedule B pages per committee")
     ap.add_argument("--out", default="top_vendors.csv")
+    ap.add_argument("--edges", default="pac_vendor_edges.csv",
+                    help="PAC<->vendor edge list for clustering (step 3)")
     args = ap.parse_args()
 
     api_key = os.environ.get("FEC_API_KEY", "DEMO_KEY")
@@ -162,6 +170,7 @@ def main():
     vendors = defaultdict(lambda: {"amount": 0.0, "payments": 0,
                                    "pacs": set(), "purposes": defaultdict(float),
                                    "raw": set(), "places": set()})
+    edges = defaultdict(lambda: {"amount": 0.0, "purpose": ""})  # (pac,vendor)
     for cid in ids:
         meta = committee_meta(cid, api_key)
         rows = schedule_b(cid, api_key, args.max_pages)
@@ -169,8 +178,8 @@ def main():
         total = rel_party_amt = 0.0
         for r in rows:
             amt = r.get("disbursement_amount") or 0
-            if amt <= 0:
-                continue
+            if amt == 0:
+                continue  # keep negatives so refunds net out
             payee = r.get("recipient_name")
             norm = normalize_vendor(payee)
             bucket = categorize(r.get("disbursement_description"))
@@ -187,10 +196,17 @@ def main():
             v["raw"].add((payee or "")[:40])
             if r.get("recipient_city"):
                 v["places"].add(f"{r.get('recipient_city')},{r.get('recipient_state')}")
+            e = edges[(cid, norm)]
+            e["amount"] += amt
+            e["purpose"] = bucket
+        # cost-to-raise uses AUTHORITATIVE receipts (totals endpoint); Schedule B
+        # sums are inflated by amended/superseded transactions, so they are used
+        # only for vendor identification and relative allocation, not as totals.
         fundraising = buckets.get("fundraising", 0)
-        ctr = fundraising / total if total else 0
-        print(f"{cid}  itemized=${total:,.0f}  "
-              f"fundraising=${fundraising:,.0f} ({ctr:.0%})  "
+        receipts = meta.get("receipts") or 0
+        ctr = fundraising / receipts if receipts else 0
+        print(f"{cid}  itemized=${total:,.0f} (net)  receipts=${receipts:,.0f}  "
+              f"cost_to_raise=${fundraising:,.0f}/{ctr:.0%}  "
               f"related_party=${rel_party_amt:,.0f}  "
               f"treasurer={meta.get('treasurer')}")
 
@@ -207,7 +223,15 @@ def main():
             w.writerow([norm, round(v["amount"], 2), v["payments"],
                         len(v["pacs"]), dom, sorted(v["raw"])[0],
                         "; ".join(sorted(v["places"])[:3])])
-    print(f"\nWrote {args.out}  ({sum(1 for n in vendors if n)} vendors)\n")
+    with open(args.edges, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["committee_id", "vendor_normalized", "amount", "purpose"])
+        for (cid, norm), e in edges.items():
+            if norm:
+                w.writerow([cid, norm, round(e["amount"], 2), e["purpose"]])
+
+    print(f"\nWrote {args.out}  ({sum(1 for n in vendors if n)} vendors)")
+    print(f"Wrote {args.edges}  ({sum(1 for (_, n) in edges if n)} edges)\n")
     print(f"{'vendor':32} {'total':>12} {'pacs':>5} {'purpose':>12}")
     for norm, v in ranked[:12]:
         if not norm:

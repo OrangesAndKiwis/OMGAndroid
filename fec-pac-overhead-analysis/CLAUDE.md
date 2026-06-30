@@ -40,6 +40,31 @@ API key: stored in .env as FEC_API_KEY
 
 Output is *leads for review*, not fraud accusations — high overhead is legal.
 
+## Pipeline (built & tested)
+
+1. `analyze.py`  — bulk 2024 sweep -> `flagged_pacs.csv` (+ 2026 raised-to-date).
+2. `vendors.py`  — Schedule B per flagged PAC -> `top_vendors.csv` + `pac_vendor_edges.csv`
+   (cost-to-raise, related-party self-dealing, vendor rollup).
+3. `clusters.py` — groups PACs by shared overhead vendors -> `vendor_clusters.csv`.
+
+Helpers: `validate.py` (single-PAC check), `compare.py` (ratio comparison).
+
+## Data-quality caveats (found during build)
+
+- **Schedule B is NOT authoritative for dollar totals.** Its sums exceed the
+  committee's reported disbursements because the API returns superseded
+  transactions from amended filings (and Schedule B only itemizes payments
+  >$200). Use the totals endpoint for magnitudes; use Schedule B only for
+  vendor identification and relative allocation. Cost-to-raise therefore uses
+  authoritative `receipts` from totals as the denominator.
+- **Negative disbursements** (refunds/corrections) must be summed (not skipped)
+  so they net out — skipping them inflates vendor totals.
+- **Use FEC seek pagination** (`last_index`), not page numbers — page-based
+  paging duplicates/skips rows on sorted Schedule B queries.
+- **Cost-to-raise is the key discriminator** validated in testing: it separates
+  transfer-heavy union/trade PACs (~0%) from fundraising-treadmill PACs (50%+),
+  which the mission ratio alone cannot.
+
 ## Outputs
 - flagged_pacs.csv — main output
 - vendor_clusters.csv — PAC groups by shared vendors
