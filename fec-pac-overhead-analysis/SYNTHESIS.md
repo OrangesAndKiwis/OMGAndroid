@@ -82,6 +82,35 @@ Adversarial view — evasion tactics, several **already visible in our data**:
 vendor-address entity resolution, multi-cycle operator persistence, alias/501(c)(4)
 cross-linking, and message provenance.
 
+### The vendor-BACK view (the biggest missing angle — now built)
+
+The whole pipeline was **PAC-back** (PAC → its vendors). Inverting it — **vendor →
+every client PAC** (`vendor_back.py`) — is how the Daily Beast mapped the Zeitlin
+network, and it is the frame the legal case needs (vendor = enterprise/defendant).
+Mapping each convicted/banned operator across 2022–2026 and grading by
+**scam-concentration** (share of client money going to scam-profile PACs):
+
+| Operator | Client PACs | Total paid | % $ to scam PACs | Read |
+|---|--:|--:|--:|---|
+| **Gelvan** (banned) | 33 | $11.8M | **76%** | real enterprise |
+| **Zeitlin** (convicted) | 27 | **$36.8M** | ~63%* | real enterprise |
+| Daly (convicted) | 239 | $22.5M | **5%** | noise (mainstream clients) |
+| Olympic Media | 145 | $9.4M | **2%** | noise |
+| RetroMedia | 1 | $0.4M | bespoke | single-PAC shell |
+
+*\*Zeitlin's 27-PAC roster is entirely police/veteran-themed (Honoring American
+Law Enforcement $5.9M, Police Coalition $4.3M, Police & Trooper Support $3.6M…);
+the 63% is a floor from the exact small-dollar filter, substance is ~100%.*
+
+**Two payoffs:** (1) it **corrects the watchlist** — a convicted operator is only
+a strong signal if its *clientele is concentrated in scam PACs* (Zeitlin/Gelvan),
+not if it went mainstream post-conviction (Daly's 239 clients are 95% NRSC/RNC/
+Trump/NRCC; Olympic serves real campaigns). Weight the watchlist by
+scam-concentration. (2) It hands the case its **cleanest defendants**: the Zeitlin
+call-center enterprise ($36.8M, 27 police/veteran PACs, convicted → collateral
+estoppel) and the Gelvan enterprise ($11.8M, 76% charity-name scams). See
+`vendor_networks.csv` / `vendor_network_clients.csv`.
+
 ---
 
 ## Q3 — What we learned: the case, structured
