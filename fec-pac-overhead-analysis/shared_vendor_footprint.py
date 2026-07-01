@@ -49,19 +49,53 @@ print(f"{len(cc)} scam-profile PACs; {len(shared)} vendors shared by >= {MIN_SHA
       f"of them. Pulling total footprint of each ...", flush=True)
 
 
-def footprint(v):
-    clients = vb.payers_of(v, 2024, max_pages=4)   # capped: enough to tell few vs many
-    return v, len(clients)
+import os
+import threading
 
+CACHE = "footprint_cache.csv"
+_wlock = threading.Lock()
 
+# resume: reuse any counts already pulled on a prior (crashed) run
 tot = {}
+if os.path.exists(CACHE):
+    for r in csv.DictReader(open(CACHE)):
+        tot[r["vendor"]] = int(r["total_clients"])
+print(f"  resuming with {len(tot)} vendors already cached", flush=True)
+
+
+def footprint(v):
+    if v in tot:                       # already have it from a prior run
+        return v, tot[v]
+    try:
+        clients = vb.payers_of(v, 2024, max_pages=1)   # page 1 reveals rare vs ubiquitous
+        n = len(clients)
+    except Exception as e:             # one bad vendor must not kill the whole run
+        print(f"  ! {v[:30]}: {type(e).__name__}", flush=True)
+        return v, None
+    with _wlock:                       # checkpoint immediately so a crash resumes
+        with open(CACHE, "a", newline="") as f:
+            csv.writer(f).writerow([v, n])
+    return v, n
+
+
+todo = [v for v in shared if v not in tot]
 done = 0
 with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
-    for v, ntot in ex.map(footprint, shared):
-        tot[v] = ntot
+    for v, ntot in ex.map(footprint, todo):
+        if ntot is not None:
+            tot[v] = ntot
         done += 1
         if done % 15 == 0:
-            print(f"  {done}/{len(shared)}", flush=True)
+            print(f"  {done}/{len(todo)}", flush=True)
+
+# retry any vendors that errored out (timeouts), single-threaded, once
+missing = [v for v in shared if v not in tot]
+if missing:
+    print(f"  retrying {len(missing)} that errored ...", flush=True)
+    for v in missing:
+        _, n = footprint(v)
+        if n is not None:
+            tot[v] = n
 
 distinctive = {v: p for v, p in shared.items() if tot.get(v, 999) <= DISTINCTIVE_MAX}
 generic = {v: p for v, p in shared.items() if tot.get(v, 999) > DISTINCTIVE_MAX}
