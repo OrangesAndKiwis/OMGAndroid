@@ -70,7 +70,9 @@ def main():
 
     def analyze(item):
         vendor = item[0]
-        clients = vb.payers_of(vendor, 2024)  # {cid: [amt, cnt]}
+        # cap pages: top payments by amount dominate the $-share; true hidden
+        # operators have few clients (fully captured); only noise vendors truncate
+        clients = vb.payers_of(vendor, 2024, max_pages=6)  # {cid: [amt, cnt]}
         total = sum(a for a, _ in clients.values())
         scam_amt = sum(a for cid, (a, _) in clients.items() if cid in scam)
         return {

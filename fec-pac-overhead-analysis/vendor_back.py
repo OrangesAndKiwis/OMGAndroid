@@ -64,10 +64,15 @@ def get(path, retries=4, **params):
     return {"results": [], "pagination": {}}
 
 
-def payers_of(name, cycle):
-    """{committee_id: [amount, count]} for all disbursements to `name` in cycle."""
+def payers_of(name, cycle, max_pages=None):
+    """{committee_id: [amount, count]} for disbursements to `name` in cycle.
+
+    max_pages caps pagination (results are sorted by -amount, so the top pages
+    capture the largest client payments that dominate the dollar-share; used by
+    the hidden-operator detector to bound cost on widely-used vendors)."""
     agg = defaultdict(lambda: [0.0, 0])
     seek = {}
+    pages = 0
     while True:
         d = get("schedules/schedule_b/", recipient_name=name,
                 two_year_transaction_period=cycle, per_page=100,
@@ -80,8 +85,9 @@ def payers_of(name, cycle):
             cid = r.get("committee_id")
             agg[cid][0] += amt
             agg[cid][1] += 1
+        pages += 1
         idx = (d.get("pagination", {}).get("last_indexes") or {})
-        if len(res) < 100 or not idx.get("last_index"):
+        if len(res) < 100 or not idx.get("last_index") or (max_pages and pages >= max_pages):
             break
         seek = {"last_index": idx["last_index"],
                 "last_disbursement_amount": idx["last_disbursement_amount"]}
