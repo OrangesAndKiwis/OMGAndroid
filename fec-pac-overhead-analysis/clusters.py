@@ -25,6 +25,22 @@ MIN_SHARED_PACS = 2     # a vendor must touch >=2 PACs to be a linking edge
 MAX_SHARED_FRAC = 0.30  # ...but not >30% of PACs (Google/ActBlue-type vendors
                         # are ubiquitous and link everyone -> not distinctive)
 
+# Payment processors / platforms / infrastructure everyone uses — they are not
+# distinctive fundraising operations, so they must not link PACs into clusters.
+STOPLIST = (
+    "WINRED", "ACTBLUE", "ANEDOT", "STRIPE", "PAYPAL", "SQUARE",
+    "GOOGLE", "META", "FACEBOOK", "AMAZON", "MICROSOFT", "TWILIO",
+    "NGP VAN", "SALSA", "USPS", "POSTAL", "AMERICAN EXPRESS", "WELLS FARGO",
+    "COMCAST", "VERIZON", "AT&T", "INTUIT", "QUICKBOOKS", "DELTA", "UNITED AIR",
+    "AUTHORIZE NET", "PARAGON PAYMENT", "BANK OF AMERICA", "AMALGAMATED BANK",
+    "CHASE BANK", "JPMORGAN", "CITIBANK", "HILTON", "MARRIOTT", "EXPEDIA",
+    "SOUTHWEST AIR", "AMERICAN AIR", "UBER", "LYFT", "FEDEX", "UPS ",
+)
+
+
+def is_stoplisted(vendor):
+    return any(s in vendor for s in STOPLIST)
+
 
 class UnionFind:
     def __init__(self):
@@ -61,10 +77,12 @@ def main():
 
     edges = load_edges(args.edges)
 
-    # vendor -> PACs that paid it (overhead only)
+    # vendor -> PACs that paid it (overhead only, excluding infra/processors)
     vendor_pacs = defaultdict(set)
     vendor_amt = defaultdict(float)
     for cid, vendor, amt in edges:
+        if is_stoplisted(vendor):
+            continue
         vendor_pacs[vendor].add(cid)
         vendor_amt[vendor] += amt
 
