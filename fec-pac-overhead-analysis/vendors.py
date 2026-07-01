@@ -19,9 +19,11 @@ Writes top_vendors.csv (and prints per-committee cost-to-raise / related-party).
 See CLAUDE.md for rationale.
 """
 import argparse
+import concurrent.futures
 import csv
 import os
 import re
+import threading
 import time
 import json
 import urllib.error
@@ -32,8 +34,9 @@ from collections import defaultdict
 API = "https://api.open.fec.gov/v1"
 PER_PAGE = 100
 EMPTY = {"results": [], "pagination": {"pages": 0}}
-THROTTLE = 1.05  # seconds between calls; FEC allows ~60/min
+THROTTLE = 1.1  # min seconds between call STARTS (~54/min, under FEC's 60/min)
 _last_call = [0.0]
+_rate_lock = threading.Lock()  # serializes call starts across worker threads
 RECEIPTS_FLOOR = 100_000      # scam sweet-spot band (raises real money...
 RECEIPTS_CEIL = 50_000_000   # ...but not a mega-operation)
 
@@ -50,12 +53,28 @@ PURPOSE_RULES = [
     ("mission", ("CONTRIBUTION", "INDEPENDENT EXP", "DONATION TO")),
 ]
 
+# Fundraising vendors tied to documented scam-PAC operations / convictions
+# (see research_findings.md). Paying one is a signal, NOT a verdict — several
+# also serve mainstream clients — so it is scored, not used to auto-flag.
+WATCHLIST_VENDORS = (
+    "CLOUD DATA", "ZEITLIN", "OUTREACH CALLING", "GELVAN",
+    "REACH RIGHT", "BETTER MOUSETRAP", "OLYMPIC MEDIA", "CRISIS RELIEF CONSULT",
+)
 
-def fec_get(path, api_key, retries=4, **params):
-    gap = THROTTLE - (time.time() - _last_call[0])
-    if gap > 0:
-        time.sleep(gap)
-    _last_call[0] = time.time()
+
+def watchlisted(vendor):
+    return any(w in vendor for w in WATCHLIST_VENDORS)
+
+
+def fec_get(path, api_key, retries=4, paced=True, **params):
+    if paced:
+        # thread-safe: space call starts by THROTTLE so N workers can't exceed
+        # the global rate limit (they overlap on response latency, not starts).
+        with _rate_lock:
+            gap = THROTTLE - (time.time() - _last_call[0])
+            if gap > 0:
+                time.sleep(gap)
+            _last_call[0] = time.time()
     params["api_key"] = api_key
     url = f"{API}/{path}?{urllib.parse.urlencode(params)}"
     for attempt in range(retries):
@@ -97,7 +116,7 @@ def categorize(desc):
     return "other"
 
 
-def schedule_b(committee_id, api_key, max_pages):
+def schedule_b(committee_id, api_key, max_pages, paced=True):
     """Itemized 2024 disbursements via FEC seek pagination (last_index).
 
     Page-based paging duplicates/skips rows on sorted Schedule B queries, so we
@@ -105,7 +124,7 @@ def schedule_b(committee_id, api_key, max_pages):
     """
     rows, seek, pages = [], {}, 0
     while pages < max_pages:
-        d = fec_get("schedules/schedule_b/", api_key,
+        d = fec_get("schedules/schedule_b/", api_key, paced=paced,
                     committee_id=committee_id, two_year_transaction_period=2024,
                     per_page=PER_PAGE, sort="-disbursement_amount", **seek)
         res = d.get("results", [])
@@ -119,20 +138,20 @@ def schedule_b(committee_id, api_key, max_pages):
     return rows
 
 
-def committee_meta(committee_id, api_key):
-    res = fec_get(f"committee/{committee_id}/", api_key).get("results", [])
+def committee_meta(committee_id, api_key, paced=True):
+    res = fec_get(f"committee/{committee_id}/", api_key, paced=paced).get("results", [])
     meta = {"treasurer": None, "street": None, "zip": None, "receipts": 0}
     if res:
         c = res[0]
         meta.update(treasurer=c.get("treasurer_name"), street=c.get("street_1"),
                     zip=c.get("zip"))
     # authoritative 2024 receipts (totals endpoint), used as cost-to-raise denom
-    tot = fec_get(f"committee/{committee_id}/totals/", api_key,
+    tot = fec_get(f"committee/{committee_id}/totals/", api_key, paced=paced,
                   cycle=2024).get("results", [])
     if tot:
         meta["receipts"] = tot[0].get("receipts") or 0
     # 2026 raised-to-date exposure (per-suspect, not a full bulk sweep)
-    tot26 = fec_get(f"committee/{committee_id}/totals/", api_key,
+    tot26 = fec_get(f"committee/{committee_id}/totals/", api_key, paced=paced,
                     cycle=2026).get("results", [])
     meta["raised_2026"] = (tot26[0].get("receipts") or 0) if tot26 else 0
     return meta
@@ -198,11 +217,30 @@ def main():
                                    "raw": set(), "places": set()})
     edges = defaultdict(lambda: {"amount": 0.0, "purpose": ""})  # (pac,vendor)
     summaries = []
-    for cid in ids:
-        meta = committee_meta(cid, api_key)
-        rows = schedule_b(cid, api_key, args.max_pages)
+
+    def fetch(cid):
+        # workers overlap on latency; the thread-safe rate limiter in fec_get
+        # caps the global call rate so we stay under FEC's 60/min.
+        try:
+            meta = committee_meta(cid, api_key)
+            rows = schedule_b(cid, api_key, args.max_pages)
+            return cid, meta, rows
+        except Exception:
+            return cid, {}, []  # resilient: one bad committee never kills the run
+
+    workers = 1 if api_key == "DEMO_KEY" else 6
+    fetched, done = [], 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+        futs = {ex.submit(fetch, cid): cid for cid in ids}
+        for fut in concurrent.futures.as_completed(futs):
+            fetched.append(fut.result())
+            done += 1
+            if done % 50 == 0:
+                print(f"  fetched {done}/{len(ids)} committees", flush=True)
+
+    for cid, meta, rows in fetched:
         buckets = defaultdict(float)
-        total = rel_party_amt = 0.0
+        total = rel_party_amt = watchlist_amt = 0.0
         for r in rows:
             amt = r.get("disbursement_amount") or 0
             if amt == 0:
@@ -215,6 +253,8 @@ def main():
             if related_party(payee, r.get("recipient_city"),
                              r.get("recipient_zip"), meta):
                 rel_party_amt += amt
+            if watchlisted(norm):
+                watchlist_amt += amt
             v = vendors[norm]
             v["amount"] += amt
             v["payments"] += 1
@@ -240,13 +280,9 @@ def main():
             "fundraising_spend": round(fundraising, 2),
             "cost_to_raise_pct": round(ctr * 100, 1),
             "related_party_spend": round(rel_party_amt, 2),
+            "watchlist_vendor_spend": round(watchlist_amt, 2),
             "raised_2026_to_date": round(meta.get("raised_2026") or 0, 2),
         })
-        print(f"{cid}  itemized=${total:,.0f} (net)  receipts=${receipts:,.0f}  "
-              f"cost_to_raise=${fundraising:,.0f}/{ctr:.0%}  "
-              f"related_party=${rel_party_amt:,.0f}  "
-              f"2026=${meta.get('raised_2026') or 0:,.0f}  "
-              f"treasurer={meta.get('treasurer')}")
 
     # rank vendors by total overhead dollars across PACs
     ranked = sorted(vendors.items(), key=lambda kv: kv[1]["amount"], reverse=True)
