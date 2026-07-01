@@ -29,14 +29,23 @@ distinctive-vendor clustering surfaced a genuine high-overhead fundraising
 relationship. (TMA Direct, another cluster vendor, is a legitimate conservative
 mail firm with no scam reporting.)
 
-Caveats on the cluster: no source labels any of the three PACs a "scam PAC"
-outright, and Red Renaissance's one formal fraud-type complaint (FEC **MUR 7944**,
-conversion to personal use) was **dismissed** ("no reason to believe"). Also, the
-three don't share one treasurer: Red Renaissance and Nine PAC are Crate/Red Curve,
-but **Conservative Action Fund is Charles Gantt / Bulldog Compliance** — a
-*second* high-volume GOP compliance shop (reportedly behind 500+ dark-money
-groups). The cluster is real because of the shared *fundraising vendor*, not a
-shared treasurer.
+Stronger still: a *second* Cluster 1 vendor, **Reach Right Digital Marketing**,
+is the firm of **Jack Daly — criminally convicted in 2023 of scam-PAC fraud**
+(the "Draft PAC"/Draft David Clarke scheme: $1.6M raised, targeting elderly and
+Alzheimer's-afflicted victims; 4 months prison + restitution). So the cluster is
+linked by *two* documented high-overhead fundraising vendors, one owned by a
+convicted fraudster. That is exactly the "coordinated fundraising ecosystem"
+signal the vendor layer was designed to surface.
+
+Caveats on the cluster: no source labels any of the three PACs themselves a
+"scam PAC" outright; Red Renaissance's one formal fraud-type complaint (FEC
+**MUR 7944**) was **dismissed** ("no reason to believe"); and Reach Right's
+*largest* clients are mainstream committees (NRCC, Rand Paul, McCarthy) — using
+the vendor doesn't by itself make a PAC a scam. Also, the three don't share one
+treasurer: Red Renaissance and Nine PAC are Crate/Red Curve, but **Conservative
+Action Fund is Charles Gantt / Bulldog Compliance** — a *second* high-volume GOP
+compliance shop (reportedly behind 500+ dark-money groups). The cluster is real
+because of the shared *fundraising vendors*, not a shared treasurer.
 
 ## False positives the research confirmed (and why)
 
@@ -70,6 +79,16 @@ shared treasurer.
 
 4. **>100% cost-to-raise = termination artifact**, not a super-scam. Flag
    separately or require the committee to be active (non-terminated) that cycle.
+
+5. **Build a known-bad-fundraiser watchlist** — the highest-value enhancement
+   this research suggests. Several vendors recur across documented scam
+   operations: **Cloud Data Services / Richard Zeitlin** (convicted), **Reach
+   Right Digital Marketing / Better Mousetrap Digital** (Jack Daly, convicted),
+   **Olympic Media** ("racket" commissions), **Crisis Relief Consultants**, and
+   **Mark Gelvan / Outreach Calling** (court-barred). Flagging any PAC that pays
+   a watchlisted vendor would catch scams the ratios miss, and corroborate the
+   ones they don't. (Guard against over-reach: some of these vendors also serve
+   mainstream clients — the vendor is a signal, not a verdict.)
 
 ## Data caveats
 - Fetches to OpenSecrets / major outlets frequently returned HTTP 403; several
