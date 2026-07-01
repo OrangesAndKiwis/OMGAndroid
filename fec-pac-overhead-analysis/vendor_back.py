@@ -23,7 +23,7 @@ from collections import defaultdict
 
 API = "https://api.open.fec.gov/v1"
 CYCLES = (2022, 2024, 2026)
-THROTTLE = 1.25   # ~48/min, comfortably under FEC's 60/min even with retries
+THROTTLE = 1.6    # ~37/min, conservative headroom under FEC's 60/min
 _last = [0.0]
 _lock = threading.Lock()
 
@@ -39,7 +39,7 @@ OPERATORS = {
 }
 
 
-def get(path, retries=6, **params):
+def get(path, retries=8, **params):
     params["api_key"] = os.environ.get("FEC_API_KEY", "DEMO_KEY")
     url = f"{API}/{path}?{urllib.parse.urlencode(params)}"
     for a in range(retries):

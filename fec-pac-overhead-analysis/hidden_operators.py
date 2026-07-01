@@ -26,7 +26,7 @@ import concurrent.futures
 
 MIN_SHARED_PACS = 2
 MIN_TOTAL = 50_000        # vendor must move real money to be worth flagging
-TOP_CANDIDATES = 45       # cap the discovered vendor list (bounds API cost)
+TOP_CANDIDATES = 25       # cap the discovered vendor list (bounds API cost)
 
 # payment processors / infra — never operators (reuse clustering stoplist idea)
 STOP = ("WINRED", "ACTBLUE", "ANEDOT", "STRIPE", "PAYPAL", "SQUARE", "GOOGLE",
@@ -84,7 +84,7 @@ def main():
             "bespoke": len(clients) <= 2,
         }
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
         rows = [r for r in ex.map(analyze, cands) if r["total_paid_2024"] >= MIN_TOTAL]
 
     # hidden-operator score: concentration weighted by volume; bespoke boosted
