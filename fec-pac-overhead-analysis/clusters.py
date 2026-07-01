@@ -22,8 +22,11 @@ from collections import defaultdict
 
 OVERHEAD_PURPOSES = {"fundraising", "consulting", "admin"}
 MIN_SHARED_PACS = 2     # a vendor must touch >=2 PACs to be a linking edge
-MAX_SHARED_FRAC = 0.30  # ...but not >30% of PACs (Google/ActBlue-type vendors
-                        # are ubiquitous and link everyone -> not distinctive)
+MAX_SHARED_FRAC = 0.30  # ...but not >30% of PACs...
+MAX_SHARED_PACS = 8     # ...and never more than this absolute count. At scale a
+                        # fractional cap is too loose (a vendor in 100 of 752
+                        # PACs still blobs them); a distinctive shared vendor
+                        # links only a handful of committees.
 
 # Payment processors / platforms / infrastructure everyone uses — they are not
 # distinctive fundraising operations, so they must not link PACs into clusters.
@@ -35,6 +38,9 @@ STOPLIST = (
     "AUTHORIZE NET", "PARAGON PAYMENT", "BANK OF AMERICA", "AMALGAMATED BANK",
     "CHASE BANK", "JPMORGAN", "CITIBANK", "HILTON", "MARRIOTT", "EXPEDIA",
     "SOUTHWEST AIR", "AMERICAN AIR", "UBER", "LYFT", "FEDEX", "UPS ",
+    # payroll / compliance / law / SaaS — shared services, not fundraising ops
+    "GUSTO", "TATANGO", "SANDLER REIFF", "ELIAS LAW", "CAPITOL COMPLIANCE",
+    "GRASSROOTS ANALYTICS", "NATIONBUILDER", "DIVVY", "RAMP", "QGIV", "NUMERO",
 )
 
 
@@ -86,57 +92,35 @@ def main():
         vendor_pacs[vendor].add(cid)
         vendor_amt[vendor] += amt
 
-    # distinctive shared vendors: used by >= MIN_SHARED_PACS but not by more than
-    # MAX_SHARED_FRAC of all PACs (ubiquitous vendors link everyone -> noise).
-    all_pacs = {p for pacs in vendor_pacs.values() for p in pacs}
-    ceiling = max(MIN_SHARED_PACS, int(MAX_SHARED_FRAC * len(all_pacs)))
-    uf = UnionFind()
-    shared_vendors = {v: pacs for v, pacs in vendor_pacs.items()
-                      if MIN_SHARED_PACS <= len(pacs) <= ceiling}
-    for pacs in shared_vendors.values():
-        pacs = sorted(pacs)
-        for other in pacs[1:]:
-            uf.union(pacs[0], other)
-
-    # gather clusters (only PACs that ended up linked)
-    clusters = defaultdict(set)
-    for pac in {p for pacs in shared_vendors.values() for p in pacs}:
-        clusters[uf.find(pac)].add(pac)
-
-    rows = []
-    for members in clusters.values():
-        if len(members) < 2:
-            continue
-        cvendors = sorted(
-            (v for v, pacs in shared_vendors.items() if pacs & members),
-            key=lambda v: vendor_amt[v], reverse=True)
-        total = sum(vendor_amt[v] for v in cvendors)
-        rows.append({
-            "num_pacs": len(members),
-            "num_shared_vendors": len(cvendors),
-            "total_shared_overhead": round(total, 2),
-            "committee_ids": "; ".join(sorted(members)),
-            "shared_vendors": "; ".join(cvendors[:8]),
-        })
-    rows.sort(key=lambda r: (r["num_pacs"], r["total_shared_overhead"]),
-              reverse=True)
+    # Vendor-centric groups, NOT connected components. At scale, transitive
+    # component-chaining collapses everything into one blob (vendor A links
+    # {1,2,3}, B links {3,4,5} ... -> one giant component). A distinctive shared
+    # vendor and the handful of PACs paying it is the interpretable, actionable
+    # unit: "these N flagged PACs all route overhead to the same vendor."
+    groups = [{
+        "vendor": v,
+        "num_pacs": len(pacs),
+        "total_overhead": round(vendor_amt[v], 2),
+        "committee_ids": "; ".join(sorted(pacs)),
+    } for v, pacs in vendor_pacs.items()
+        if MIN_SHARED_PACS <= len(pacs) <= MAX_SHARED_PACS]
+    groups.sort(key=lambda g: (g["num_pacs"], g["total_overhead"]), reverse=True)
 
     with open(args.out, "w", newline="") as f:
-        cols = ["cluster_id", "num_pacs", "num_shared_vendors",
-                "total_shared_overhead", "committee_ids", "shared_vendors"]
+        cols = ["group_id", "vendor", "num_pacs", "total_overhead", "committee_ids"]
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
-        for i, r in enumerate(rows, 1):
-            w.writerow({"cluster_id": i, **r})
+        for i, g in enumerate(groups, 1):
+            w.writerow({"group_id": i, **g})
 
-    print(f"Loaded {len(edges)} overhead edges, "
-          f"{len(shared_vendors)} vendors shared by >= {MIN_SHARED_PACS} PACs")
-    print(f"Found {len(rows)} multi-PAC cluster(s) -> {args.out}\n")
-    for i, r in enumerate(rows[:10], 1):
-        print(f"  cluster {i}: {r['num_pacs']} PACs, "
-              f"{r['num_shared_vendors']} shared vendors, "
-              f"${r['total_shared_overhead']:,.0f} overhead")
-        print(f"    vendors: {r['shared_vendors'][:80]}")
+    linked = {p for g in groups for p in g["committee_ids"].split("; ")}
+    print(f"Loaded {len(edges)} overhead edges; "
+          f"{len(groups)} distinctive shared-vendor groups "
+          f"({MIN_SHARED_PACS}-{MAX_SHARED_PACS} PACs each) linking {len(linked)} PACs")
+    print(f"-> {args.out}\n")
+    for i, g in enumerate(groups[:12], 1):
+        print(f"  group {i}: {g['vendor'][:34]:34} {g['num_pacs']} PACs  "
+              f"${g['total_overhead']:>12,.0f}")
 
 
 if __name__ == "__main__":

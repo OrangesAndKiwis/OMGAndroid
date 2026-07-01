@@ -38,11 +38,13 @@ def load(path, key="committee_id"):
 
 
 def cluster_members(path="vendor_clusters.csv"):
+    """cid -> a shared-vendor group id it belongs to (any, for the score flag)."""
     members = {}
     try:
         for r in csv.DictReader(open(path)):
+            gid = r.get("group_id") or r.get("cluster_id")
             for cid in (r.get("committee_ids") or "").split("; "):
-                members[cid.strip()] = r.get("cluster_id")
+                members.setdefault(cid.strip(), gid)
     except FileNotFoundError:
         pass
     return members
