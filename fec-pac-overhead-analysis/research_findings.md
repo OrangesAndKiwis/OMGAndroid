@@ -104,3 +104,76 @@ The screen works: run blind on FEC ratios, it rediscovered four independently
 documented scam/misuse operations (including a criminally-convicted one) and its
 false positives all fall into explainable structural classes. It is a strong
 *lead generator* for review — not a fraud adjudicator.
+
+---
+
+# Round 2: corroboration of the statistical-only top leads
+
+Research on the 12 top-scored leads not covered above. Verdicts vary — which is
+the point: the score is triage, and external review sorts real from artifact.
+
+## Watchlist-vendor leads
+
+| PAC | Verdict | Evidence |
+|---|---|---|
+| **God, Family, & Country PAC** (C00847897) | **CORROBORATED** | ThinkingOregon scam-PAC writeup; vendor Better Mousetrap Digital = **Jack Daly (convicted)**; PO-box-only, untraceable principal |
+| **Elect Republicans** (C00747170) | **CORROBORATED** | paid **Better Mousetrap Digital (Jack Daly, convicted)** $63k; one of a **9-committee network** under serial treasurer Garrett Lott; 83–98% overhead, <1% lifetime to candidates |
+| **Defeat Republicans PAC** (C00755702) | **CORROBORATED** | **FEC + California FPPC fines**; serial treasurer (33 committees); 2.7% to candidates in 2024 vs. 98.8% overhead |
+| **Early Vote Action PAC** (C00829721) | **MIXED → exonerated** on scam charge | Real Scott Presler grassroots op; flagged spend went to an *insider* vendor, not a watchlisted fraudster; fraud claims only from partisan blogs. A Public Citizen complaint exists but is about *lobbying disclosure*, not fundraising fraud |
+
+## Self-dealing leads — and the key refinement
+
+The self-dealing signal split cleanly by *treasurer type*:
+
+**REAL (owner-operator treasurer/principal pays their own firm/salary — corroborated):**
+| PAC | Verdict | Evidence |
+|---|---|---|
+| **BAMPAC / Black America's PAC** (C00300921) | **CORROBORATED** | treasurer Alvin Williams paid himself ~$255k in 2024 (~$2M+ lifetime, salary-coded); CPI documented ~1% to candidates |
+| **Elder for America** (C00799361) | **CORROBORATED** | treasurer's firm Baric & Associates $307k *and* Larry Elder's own firm ~$150k (Forbes) — double insider layer, disclosed |
+| **Bowers News Media PAC** (C00878124) | **MIXED** | Bowers Kerbel Media LLC (treasurer co-owned) got ~94% of receipts; co-owned + no external scrutiny |
+| **New Journey PAC** (C00709691) | **MIXED** | $1.12M lifetime to CEO Autry Pruitt's own firm (real, disclosed) — BUT the self-deal *flag* fired on a **corrupted FEC `treasurer_name` field** (actual treasurer is Thomas Datwyler); no enforcement, disclosed vendor payment |
+
+**FALSE POSITIVE (compliance-treasurer-for-hire pays their own firm — routine):**
+| PAC | Verdict | Why the flag is wrong |
+|---|---|---|
+| **Tea Party PAC** (C00692129) | **MIXED** | "self-deal" = Robert Watkins & Co accounting fee; **Watkins treasures ~246 committees** → false positive. BUT vendor RetroMedia took ~44–58% and only 1.7% went to politics — real scam-adjacent economics via the *vendor* |
+| **Reform California Voter Guide** (C00860023) | **MIXED** (flags false) | slate-mailer economics; treasurer Boling (~24 cmtes) paid ~1.4%; but DeMaio's network has real documented controversy |
+| **Colorado Turnout Project** (C00765917) | **EXONERATED** | legit anti-Boebert Dem GOTV; no payment to the treasurer at all |
+| **Blue Vision** (C00887174) | **MIXED → exonerated** | small digital Dem PAC; $9k to treasurer (~5%) is ordinary; makes real contributions |
+
+### THE refinement this round proved
+**Self-dealing is real only when the treasurer is an owner-operator, not a
+high-volume compliance shop.** A treasurer who serves 200+ committees (Watkins)
+or 24 (Boling) paying their own firm is routine bookkeeping; a single-committee
+principal (Williams, Pruitt, Elder/Baric) paying their own firm 40–94% of
+receipts is self-dealing. **Fix:** gate the self-dealing signal on the
+treasurer's committee count (exclude treasurers-for-hire) and on the payment as
+a % of receipts. Same ubiquity lesson as WinRed/ActBlue and Bradley Crate — now
+applied to treasurers.
+
+### Second nuance: the vendor signal beats the treasurer signal
+Twice the treasurer was a red herring while the *vendor* told the truth:
+God/Family/Country and Elect Republicans both have institutional treasurers
+(Red Curve; Lott) but pay **Better Mousetrap Digital (convicted Jack Daly)** —
+and both corroborated. Tea Party's treasurer flag was false, but its vendor
+(RetroMedia, ~44–58% of receipts) is the real signal. Weight vendors over
+treasurers. And a watchlist hit is still a signal, not a verdict: Early Vote
+Action tripped it but routed money to an *insider* vendor, not a listed fraudster.
+
+### Third nuance: the FEC `treasurer_name` field can be wrong
+New Journey PAC's master record lists "Pruitt, Autry" as treasurer, but the
+actual treasurer of record is Thomas Datwyler — a data glitch that made the
+self-dealing match doubly unreliable. Don't trust `treasurer_name` alone.
+
+## Round-2 scorecard
+Of 12 statistical-only leads: **5 CORROBORATED** (God/Family/Country, Elect
+Republicans, Defeat Republicans, BAMPAC, Elder for America) · **4 MIXED with a
+real component** (Bowers, New Journey, Tea Party, Reform California network) ·
+**1 MIXED→exonerated** (Blue Vision) · **2 EXONERATED** (Early Vote Action on the
+scam charge, Colorado Turnout).
+
+**The single strongest validator: all 3 watchlist hits with any external record
+(God/Family/Country, Elect Republicans, Defeat Republicans) corroborated** —
+each pays a convicted fraudster's firm. The false positives cluster entirely in
+the compliance-treasurer self-dealing class — a fixable scoring gap, not a
+screen failure.

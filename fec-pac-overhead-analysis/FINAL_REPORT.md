@@ -6,10 +6,11 @@ overhead, or insiders — and surface coordinated operations via shared vendors.
 
 **One-line result.** Screening the full 2024 PAC universe on FEC financial
 ratios, then layering vendor-level signals, produces **20 high-confidence leads
-(score ≥ 8)** — including several *independently documented* scam operations and
-one tied to a **criminal fraud conviction** — with **~$14M already raised into
-2026** across the top tier. This is a triage screen for review, **not** a fraud
-determination.
+(score ≥ 8)**. Of the 11 top leads researched against external sources,
+**8 corroborated, 3 mixed, 1 exonerated** — the corroborated ones tied to
+**criminally-convicted fundraising firms** or documented insider-payment/
+enforcement records, with **~$14M already raised into 2026** across the top tier.
+This is a triage screen for review, **not** a fraud determination.
 
 ---
 
@@ -46,25 +47,31 @@ then a long tail. The top tier (≥8) is 20 PACs. Full ranking in `scored_leads.
 
 ## 3. Top leads (score ≥ 9)
 
-| Score | PAC | Cost-to-raise | 2024 receipts | Signal | Corroboration |
+| Score | PAC | Cost-to-raise | 2024 receipts | Signal | Corroboration (researched) |
 |--:|---|--:|--:|---|---|
 | 11 | **American Coalition for Crisis Relief** | 83% | $4.9M | watchlist | ✅ **documented scam** (multiple outlets) |
 | 11 | **Ranger PAC** | 69% | $2.6M | watchlist | ✅ **documented** (Kilgore/PDS self-dealing) |
-| 11 | Early Vote Action PAC | 65% | $7.1M | watchlist | ⚠ statistical only |
-| 11 | God, Family, & Country PAC | 79% | $0.4M | watchlist | ⚠ statistical only |
-| 11 | Elect Republicans | 60% | $0.3M | watchlist | ⚠ statistical only |
+| 11 | **God, Family, & Country PAC** | 79% | $0.4M | watchlist | ✅ **CORROBORATED** (Daly vendor; ThinkingOregon; operator Catron) |
+| 11 | **Elect Republicans** | 60% | $0.3M | watchlist | ✅ **CORROBORATED** (Daly vendor; 9-PAC Lott network) |
 | 11 | **Nine PAC** | 60% | $0.3M | watchlist | ✅ cluster (Olympic/Reach Right) |
-| 10 | Black America's Political Action Cmte | 60% | $2.2M | self-deal $251k | ⚠ statistical only |
-| 10 | New Journey PAC | 68% | $1.4M | self-deal $247k | ⚠ statistical only |
+| 11 | Early Vote Action PAC | 65% | $7.1M | watchlist | ◐ MIXED → exonerated (insider vendor; blog-only claims) |
+| 10 | **Black America's PAC (BAMPAC)** | 60% | $2.2M | self-deal $251k | ✅ **CORROBORATED** (Williams salary; CPI) |
 | 10 | **Red Renaissance** | 54% | $0.1M | watchlist | ✅ cluster (Klacik/Olympic Media) |
-| 9 | Bowers News Media PAC | 89% | $0.2M | self-deal $161k | ⚠ statistical only |
-| 9 | Defeat Republicans PAC | 54% | $0.9M | self-deal | ⚠ statistical only |
-| 9 | Reform California Voter Guide | 122%† | $0.3M | self-deal | ⚠ statistical; †artifact |
-| 9 | Elder for America | 156%† | $0.1M | self-deal | ⚠ statistical; †artifact |
+| 10 | New Journey PAC | 68% | $1.4M | self-deal $247k | ◐ MIXED (real firm payment; but FEC treasurer field corrupted) |
+| 9 | **Elder for America** | 156%† | $0.1M | self-deal $307k | ✅ **CORROBORATED** (treasurer's firm + Elder's firm; Forbes) |
+| 9 | **Defeat Republicans PAC** | 54% | $0.9M | self-deal | ✅ **CORROBORATED** (FEC + FPPC fines; 2.7% to candidates) |
+| 9 | Bowers News Media PAC | 89% | $0.2M | self-deal $161k | ◐ MIXED (co-owned LLC, ~94% of receipts) |
+| 9 | Reform California Voter Guide | 122%† | $0.3M | self-deal | ◐ MIXED (flags false; DeMaio network controversy real) |
 
-† Cost-to-raise > 100% means fundraising spend exceeded *this cycle's* receipts
+† Cost-to-raise > 100% = fundraising spend exceeded *this cycle's* receipts
 (spending reserves) — a red flag but partly an accounting artifact; verify the
 committee is active, not terminated.
+
+**Corroboration result: of the 11 top leads researched, 8 CORROBORATED, 3 MIXED,
+1 exonerated on the scam charge (Early Vote Action).** Every corroborated lead
+traces to either a **convicted fraudster's fundraising firm** (Better Mousetrap/
+Daly, Cloud Data/Zeitlin, Olympic Media) or a **documented insider-payment/
+enforcement record** (BAMPAC, Elder, Defeat Republicans).
 
 At **score 8**, the screen also auto-surfaced the **Zeitlin police-PAC network**
 — Police Coalition of America ($680k to watchlist vendors), Police and Trooper
@@ -72,22 +79,40 @@ Support ($365k), American Veterans Initiative ($314k) — plus **SEAL PAC** and
 **Defending the Republic** (Sidney Powell). All five are externally corroborated
 (see §6).
 
-## 4. The known-bad-fundraiser watchlist worked
+## 4. The known-bad-fundraiser watchlist — the most reliable signal
 
 **10 PACs routed $2.55M to vendors tied to documented scam operations** (Cloud
-Data/Zeitlin — *convicted*; Reach Right/Daly — *convicted*; Olympic Media;
-Crisis Relief Consultants). Because the watchlist is built from criminal/
-journalistic records, these hits are effectively self-corroborating: the PAC is
-paying a firm already established as a scam-fundraising operator. This single
-signal independently rediscovered the Zeitlin police-PAC network and the
-Klacik/Olympic Media committees.
+Data/Zeitlin — *convicted*; Reach Right & Better Mousetrap/Daly — *convicted*;
+Olympic Media; Crisis Relief Consultants). Because the watchlist is built from
+criminal/journalistic records, these hits are effectively self-corroborating.
 
-## 5. Self-dealing
+**Validation:** every watchlist hit with any external record corroborated —
+God/Family/Country, Elect Republicans, and Defeat Republicans each pay a
+convicted fraudster's firm and each checked out. Twice the *vendor* told the
+truth while the treasurer was a red herring (both have institutional treasurers
+— Red Curve, Lott — but pay Daly's Better Mousetrap Digital). **Lesson: weight
+the vendor signal over the treasurer signal.** Only exception: Early Vote Action
+tripped the watchlist but routed money to an *insider* vendor, not a listed
+fraudster — so a hit is a signal, not a verdict.
 
-**38 PACs paid $2.51M to payees matching their own treasurer's name** — the
-insider-enrichment signature. Caveat (from research): the name-match can also
-catch an *officer* in a dual role or a shared-address vendor, so each hit needs
-a one-line confirmation before publishing (see §7).
+## 5. Self-dealing — valid, but only for owner-operators
+
+**38 PACs paid $2.51M to payees matching their own treasurer's name.** Research
+proved this signal splits sharply by *treasurer type*:
+
+- **REAL** when a single-committee **owner-operator** pays their own firm/salary:
+  BAMPAC (Alvin Williams, ~$2M lifetime salary; CPI-documented), Elder for
+  America (treasurer's firm + Elder's firm), Bowers (co-owned LLC, ~94% of
+  receipts). **CORROBORATED.**
+- **FALSE POSITIVE** when a **compliance-treasurer-for-hire** pays their own
+  firm — routine bookkeeping: Tea Party PAC (Nancy Watkins treasures ~246
+  committees), Reform California (Boling ~24), Colorado Turnout, Blue Vision.
+
+**Fix (not yet applied):** gate the self-dealing signal on the treasurer's
+committee count (exclude treasurers-for-hire) and on the payment as a % of
+receipts. Also: the FEC `treasurer_name` field is sometimes **corrupted**
+(New Journey lists the wrong treasurer) — don't trust it alone. Same ubiquity
+lesson as WinRed/ActBlue and Bradley Crate, now applied to treasurers.
 
 ## 6. Shared-vendor groups
 
@@ -133,14 +158,18 @@ False positives all fell into explainable classes (below).
 
 ## 9. Recommended use & next steps
 
-1. **Review the top tier (score ≥ 8)** in `scored_leads.csv` — the watchlist and
-   self-dealing hits are the highest-value, most defensible leads.
-2. **Research the ~10 statistical-only top leads** (Early Vote Action, God Family
-   & Country, Black America's PAC, New Journey, Bowers News Media, Defeat
-   Republicans) to promote them from statistical to corroborated.
-3. **Confirm the 38 self-dealing hits** (treasurer vs. officer vs. address).
-4. **Optional expansion:** vendor-analyze the remaining 796 flagged PACs outside
-   the band, and grow the watchlist from each newly-confirmed operation.
+1. **Review the top tier (score ≥ 8)** in `scored_leads.csv` — the watchlist
+   hits are the highest-value, most defensible leads (all externally-checkable
+   ones corroborated). Corroboration status for the top 11 is in §3 and
+   `research_findings.md`.
+2. **Apply the self-dealing fix** (§5): gate on treasurer committee-count to drop
+   the compliance-treasurer false positives, and re-score. This is the biggest
+   remaining accuracy gain.
+3. **Expand the watchlist** with each newly-confirmed operator/vendor (Better
+   Mousetrap/Daly, RetroMedia, the Lott 9-PAC network) — it is the most reliable
+   signal and compounds as it grows.
+4. **Optional coverage expansion:** vendor-analyze the remaining 796 flagged PACs
+   outside the $100k–$50M band.
 
 ### Artifacts
 `flagged_pacs.csv` (1,548) · `scored_leads.csv` (752, ranked) ·
