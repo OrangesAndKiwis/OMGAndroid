@@ -23,7 +23,7 @@ from collections import defaultdict
 
 API = "https://api.open.fec.gov/v1"
 CYCLES = (2022, 2024, 2026)
-THROTTLE = 1.1
+THROTTLE = 1.25   # ~48/min, comfortably under FEC's 60/min even with retries
 _last = [0.0]
 _lock = threading.Lock()
 
@@ -39,15 +39,17 @@ OPERATORS = {
 }
 
 
-def get(path, retries=4, **params):
-    with _lock:
-        gap = THROTTLE - (time.time() - _last[0])
-        if gap > 0:
-            time.sleep(gap)
-        _last[0] = time.time()
+def get(path, retries=6, **params):
     params["api_key"] = os.environ.get("FEC_API_KEY", "DEMO_KEY")
     url = f"{API}/{path}?{urllib.parse.urlencode(params)}"
     for a in range(retries):
+        # pace EVERY attempt (incl. retries) through the shared limiter, so a
+        # burst of simultaneous 429 retries can't form a thundering herd.
+        with _lock:
+            gap = THROTTLE - (time.time() - _last[0])
+            if gap > 0:
+                time.sleep(gap)
+            _last[0] = time.time()
         try:
             with urllib.request.urlopen(url, timeout=60) as r:
                 return json.load(r)
@@ -55,11 +57,11 @@ def get(path, retries=4, **params):
             if e.code == 404:
                 return {"results": [], "pagination": {}}
             if e.code in (429, 500, 502, 503) and a < retries - 1:
-                time.sleep(2 ** a); continue
+                time.sleep(3 * (a + 1)); continue
             raise
         except (urllib.error.URLError, TimeoutError, ConnectionError):
             if a < retries - 1:
-                time.sleep(2 ** a); continue
+                time.sleep(3 * (a + 1)); continue
             raise
     return {"results": [], "pagination": {}}
 

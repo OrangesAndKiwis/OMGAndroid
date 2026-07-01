@@ -84,7 +84,7 @@ def main():
             "bespoke": len(clients) <= 2,
         }
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
         rows = [r for r in ex.map(analyze, cands) if r["total_paid_2024"] >= MIN_TOTAL]
 
     # hidden-operator score: concentration weighted by volume; bespoke boosted
