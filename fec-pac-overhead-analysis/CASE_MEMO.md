@@ -98,6 +98,49 @@ From *our own screen*, in one cycle and just the 752-PAC analyzed band:
 2024 receipts); 10 pay a convicted-operator vendor (~$22.5M).** The full flagged
 universe is far larger and recurs every cycle.
 
+### Q3b — Donation-pattern screen (the receipts side): who they take FROM
+
+The disbursement screen shows the money leaving; the **receipts** side shows it
+being *harvested from small donors* — the "preys on ordinary/vulnerable people"
+fingerprint. Using FEC **unitemized (<$200) individual contribution** data across
+the full 2024 universe:
+
+- **206 PACs raised $354M from small donors while giving <20% to candidates.**
+  *Caveat:* this gross includes **~$36M in union/labor PACs** (member-funded,
+  transfer money — not scams) and **~$30M in MoveOn** (a real advocacy org).
+  Do **not** cite $354M as "scam" money. Net of those: **174 scam-profile PACs,
+  ~$289M** — still large.
+- **Tightest, most defensible tier — 11 PACs, ~$27M harvested from small donors**,
+  each 69–99% small-dollar, ~0% to candidates, 81–100% overhead, **and a
+  charity/emotive name** (the deception hook):
+
+| Small-$ raised | Small-$ % | To cand. | PAC | Note |
+|--:|--:|--:|---|---|
+| $7.9M | 95% | 9% | Law Enforcement for a Safer America | Zeitlin network |
+| $4.9M | 99% | 0% | American Coalition for Crisis Relief | Gelvan-linked |
+| **$3.4M** | **99%** | 1.4% | **American Alliance for Disabled Children PAC** | ⭐ charity name |
+| $3.1M | 94% | 1.3% | Police Coalition of America | Zeitlin network |
+| $2.1M | 80% | 3.5% | Ranger PAC | Kilgore |
+| $1.6M | 92% | 1.5% | Police and Trooper Support PAC | Zeitlin network |
+| $1.5M | 94% | 2.5% | American Veterans Initiative PAC | Zeitlin network |
+| **$1.3M** | **95%** | 3.9% | **United Breast Cancer Support PAC** | ⭐ charity name |
+| $0.4M | 86% | 0% | God, Family, & Country | Daly vendor |
+| $0.3M | 95% | 16% | American Police and Troopers Coalition | police-themed |
+| $0.2M | 69% | 0% | Nine PAC | Olympic/Reach Right |
+
+**Why the ⭐ charity-name PACs are the strongest anchors:** a committee named
+"United Breast Cancer Support" or "Disabled Children" that harvests 99% from
+small donors, spends 99% on overhead, and gives ~0 to candidates *and* ~0 to any
+charity is **charity impersonation** — the **name itself is the affirmative
+misrepresentation**, which is exactly what Zeitlin was criminally convicted for
+(donors led to believe PAC money went to breast-cancer/leukemia charities). That
+sidesteps *Schaumburg/Riley* (you're not suing over overhead; you're suing over
+the deceptive charitable framing). Full ranked list in `case_candidates.csv`.
+
+**Where the Animal PAC lands on this axis:** 46% small-dollar, 6.6% to candidates
+— on the 174-PAC scam-profile list but far from this tier, and it does not
+impersonate a charity. Confirms: mild archetype, not an anchor.
+
 ---
 
 ## Q4 — Is it actionable? The honest landscape (counsel to verify)
